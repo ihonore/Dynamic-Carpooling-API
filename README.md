@@ -55,3 +55,5 @@ Before you begin, make sure you have the following installed:
 ### Usage
     Once the application is running, you can access at http://127.0.0.1:8000/docs
     for interactive documentation.
+
+![screencapture-127-0-0-1-8000-docs-2023-11-22-23_31_52](https://github.com/ihonore/Dynamic-Carpooling-API/assets/79599396/b8f1ea47-8239-4465-8b30-5929d2fe1b98)
