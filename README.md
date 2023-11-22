@@ -53,7 +53,5 @@ Before you begin, make sure you have the following installed:
    uvicorn main:app --reload
 
 ### Usage
-    Once the application is running, you can access the
-    [API Documentation](http://127.0.0.1:8000/docs)
-    at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+    Once the application is running, you can access at http://127.0.0.1:8000/docs
     for interactive documentation.
