@@ -7,6 +7,8 @@ from enum import Enum
 class UserRole(str, Enum):
     passenger = "passenger"
     driver = "driver"
+    mainly_driver = "mainly_driver"
+    mainly_passenger = "mainly_passenger"
 
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")
@@ -23,5 +25,8 @@ class User(BaseModel):
             "id": str(self.id),
             "username": self.username,
             "email": self.email,
+            "full_name":self.full_name,
+            "phone_number":self.phone_number,
+            "role":self.role,
             "created_at": self.created_at,
         }

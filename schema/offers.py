@@ -6,8 +6,11 @@ def individual_serial(offer)->dict:
         "destination":offer["destination"],
         "plate_number":offer["plate_number"],
         "available_seats":offer["available_seats"],
-        "departure_time":offer["departure_time"],
-        "arrival_time":offer["arrival_time"],
+        "leaving_at_least":offer["leaving_at_least"],
+        "leaving_at_last":offer["leaving_at_last"],
+        "arrival_at_least":offer["arrival_at_least"],
+        "arrival_at_last":offer["arrival_at_last"],
+        "via":offer["via"],
         "message":offer["message"],
         "created_at":offer["created_at"],
     }
