@@ -1,3 +1,4 @@
+import json
 from fastapi import HTTPException
 from fastapi import APIRouter
 from datetime import datetime
@@ -11,8 +12,11 @@ router=APIRouter()
 
 @router.post("/")
 async def submit_demand(demand:Demand):
-    demand.created_at = datetime.utcnow()
-    result=demands_collection.insert_one(dict(demand))
+
+    demand_dict = json.loads(demand.json())
+    demand_dict["created_at"] = datetime.utcnow()
+    
+    result=demands_collection.insert_one(demand_dict)
     if result.inserted_id:
         demand.id = result.inserted_id
         return {"message": "The demand created successfuly", "demand": demand.model_dump()}

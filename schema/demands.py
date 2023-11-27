@@ -9,7 +9,7 @@ def individual_serial(demand)->dict:
         "leaving_at_last":demand["leaving_at_last"],
         "arrival_at_least":demand["arrival_at_least"],
         "arrival_at_last":demand["arrival_at_last"],
-        "via":demand["via"],
+        "vias":demand["vias"],
         "message":demand["message"],
         "status":demand["status"],
         "created_at":demand["created_at"],

@@ -1,3 +1,4 @@
+import json
 from fastapi import HTTPException
 from fastapi import APIRouter
 from datetime import datetime
@@ -10,14 +11,20 @@ from bson import ObjectId
 router=APIRouter()
 
 @router.post("/")
-async def submit_offer(offer:Offer):
-    offer.created_at = datetime.utcnow()
-    result=offers_collection.insert_one(dict(offer))
+async def submit_offer(offer: Offer):
+    offer_dict = json.loads(offer.json())
+    
+    offer_dict["created_at"] = datetime.utcnow()
+    
+    result = offers_collection.insert_one(offer_dict)
+    
     if result.inserted_id:
         offer.id = result.inserted_id
-        return {"message": "The offer created successfuly", "offer": offer.model_dump()}
+        return {"message": "The offer created successfuly", "demand": offer.model_dump()}
     else:
         raise HTTPException(status_code=500, detail="Failed to create the offer")
+
+
 
 
 @router.get("/")
