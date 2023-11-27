@@ -1,7 +1,7 @@
 # Dynamic Carpooling API
 
 
-## Overview
+## Project Overview
 
 The Dynamic Carpooling API is a FastAPI-based project that provides dynamic carpooling functionalities, allowing users to find and share rides seamlessly.
 
