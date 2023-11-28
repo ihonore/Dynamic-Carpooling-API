@@ -24,9 +24,6 @@ async def submit_offer(offer: Offer):
     else:
         raise HTTPException(status_code=500, detail="Failed to create the offer")
 
-
-
-
 @router.get("/")
 def offers():
     offers=list_serial(offers_collection.find())
