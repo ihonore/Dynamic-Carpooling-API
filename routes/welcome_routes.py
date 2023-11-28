@@ -4,4 +4,4 @@ from .api_router import api_router as router
 
 @router.get("/")
 def home():
-    return {"status":200,"message":"Welcome to the API"}
+    return {"status":200,"message":"Welcome to the Dynamic carpooling Web API"}
