@@ -9,11 +9,31 @@ from bson import ObjectId
 
 router=APIRouter()
 
+def user_helper(user) -> dict:
+    return {
+        "id": str(user["_id"]),
+        "username": user["username"],
+        "email": user["email"],
+        "full_name": user["full_name"],
+        "phone_number": user["phone_number"],
+        "role": user["role"],
+        "created_at": user["created_at"],
+    }
+
 @router.get("/")
 def users():
     users=list_serial(users_collection.find())
     return users
 
+# Find user by ID
+@router.get("/{user_id}")
+def find_user_by_id(user_id: str):
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+
+    if user:
+        return {"message":"User found successfully", "user":user_helper(user)}
+    else:
+        return {"status_code":404, "message":"User not found"}
 
 # Register User //We will implement it further
 @router.post("/register")
