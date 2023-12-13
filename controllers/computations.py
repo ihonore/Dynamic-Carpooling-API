@@ -1,13 +1,25 @@
 import requests
+import sys
 
-from config.database import offers_collection
-from config.database import demands_collection
-from models.offers import offers
-from models.demands import demands
-from schema.offers import list_serial
-from schema.demands import list_serial
+from config.database import offers_collection, demands_collection
+from schema.offers import list_serial as list_serial_offers
+from schema.demands import list_serial as list_serial_demands
 
+# Generate an unique id to each location
+def generate_unique_id(coord) -> str:
+    return f"{coord['latitude']}_{coord['longitude']}"
 
+# Build a list of all locations with their unique id
+def add_ids_to_locations(locations) -> list:
+    result = []
+
+    for location in locations:
+        location_id = generate_unique_id(location['coord'])
+        result.append({'id': location_id}, **location )
+        
+    return result
+
+# Compute the distance and duration of two coordinates
 def get_osrm_route(coord1, coord2):
     # Open Source Route Machine API (Computation of distance and duration)
     # Format des coordonnées : [longitude, latitude]
@@ -20,9 +32,10 @@ def get_osrm_route(coord1, coord2):
     else:
         return None
     
-def export_locations(offers: list, demands:list) -> list:
-    offers = list_serial(offers_collection.find())
-    demands = list_serial(demands_collection.find())
+# Extract every locations (origin, destination and vias) of each itinerary either for offer or demand
+def extract_locations() -> list:
+    offers = list_serial_offers(offers_collection.find())
+    demands = list_serial_demands(demands_collection.find())
     reqs = offers + demands
     
     locations = []
@@ -37,7 +50,8 @@ def export_locations(offers: list, demands:list) -> list:
     return locations
     
 
-def build_distance_matrix(locations) -> list[list]:
+# Build the origin-destination matrix
+def build_matrix(locations) -> list[list]:
     n = len(locations)
     distance_matrix = [[None] * n for _ in range(n)]
         
@@ -53,3 +67,42 @@ def build_distance_matrix(locations) -> list[list]:
                     }
     
     return distance_matrix
+
+# Extract all requests according to their type
+"""def extract_requests() :
+    offers = list_serial_offers(offers_collection.find())
+    demands = list_serial_demands(demands_collection.find())
+    reqs = offers + demands
+    
+    list_OD, list_OP, list_MD, list_MP = []
+    
+    for req in reqs:
+        if req."""
+    
+    
+
+
+def computation():   
+    all_locations = extract_locations()
+    all_locations = add_ids_to_locations(all_locations)
+    
+    for row in all_locations:
+        print(row)
+        
+    return all_locations
+
+"""
+
+# Filtrer les locations uniques avec les IDs ajoutés
+unique_locations = filter_unique_locations(locations_with_ids)
+
+# Afficher les résultats
+print_locations(unique_locations)
+
+# Utiliser les locations obtenues précédemment
+distance_matrix = build_matrix(unique_locations)
+
+# Afficher la matrice des distances
+print("\nMatrice des distances entre les locations:")
+for row in distance_matrix:
+    print(row)"""
