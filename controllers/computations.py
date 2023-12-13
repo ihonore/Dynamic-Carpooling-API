@@ -1,9 +1,10 @@
 import requests
-import sys
 
-from config.database import offers_collection, demands_collection
+from config.database import offers_collection, demands_collection, users_collection
 from schema.offers import list_serial as list_serial_offers
 from schema.demands import list_serial as list_serial_demands
+
+from bson import ObjectId
 
 # Generate an unique id to each location
 def generate_unique_id(coord) -> str:
@@ -69,18 +70,59 @@ def build_matrix(locations) -> list[list]:
     return distance_matrix
 
 # Extract all requests according to their type
-"""def extract_requests() :
+def extract_requests() :
     offers = list_serial_offers(offers_collection.find())
     demands = list_serial_demands(demands_collection.find())
     reqs = offers + demands
     
-    list_OD, list_OP, list_MD, list_MP = []
+    list_req = {'od' : [], 'op' : [], 'md' : [], 'mp' : []}
+    
+    fields_to_remove = ['plate_number', 'message', 'created_at']
     
     for req in reqs:
-        if req."""
-    
-    
+        # Remove useless fields for algorithm
+        for field in fields_to_remove:
+            if field in req:
+                del req[field]
 
+        user = users_collection.find_one({"_id": ObjectId(req.user_id)})
+        if user.role == 'driver':
+            list_req['od'].append(req)
+        elif user.role == 'passenger':
+            list_req['op'].append(req)
+        elif user.role == 'mainly_driver':
+            list_req['md'].append(req)
+        elif user.role == 'mainly_passenger':
+            list_req['mp'].append(req)
+    
+    return list_req
+
+def greedy_algo(list_req: dict) -> list:
+    solutions = []
+    
+    """ 
+        Step 1 : Loop over the whole OnlyDriver List (L_OD)
+                 Insert the itinerary of every item of this list into the solution
+    """
+    solution = {}
+    for req in list_req['od']:
+        solution = {'id': req.id, 'available_seats': req.available_seats, 'itin': req.itinerary}
+        solutions.append(solution)
+        
+    """
+        Step 2 : Loop over the whole OnlyPassenger List (L_OP)
+                 For every item, loop over the whole Solutions List
+                 Verify if the OnlyPassenger demand can be inserted to the current item of solution (according to some constraints)
+                    if yes, insert
+                 If the OnlyPassenger demand doesn't find a solution, keep it
+                 
+        Important : As the project is multi objectives, we decide to maximize the number of request to satisfy 
+                    instead of reduce number of vehicles in traffic that is why we start by OnlyPassenger (instead of mainlyDriver)
+    """
+    
+    """
+        Step 3: 
+    """
 
 def computation():   
     all_locations = extract_locations()

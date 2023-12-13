@@ -5,8 +5,8 @@ from pydantic import BaseModel, EmailStr,Field
 from enum import Enum
 
 class UserRole(str, Enum):
-    passenger = "only passenger"
-    driver = "only driver"
+    passenger = "passenger"
+    driver = "driver"
     many_driver = "many_driver"
     many_passenger = "many_passenger"
 
