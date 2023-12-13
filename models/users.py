@@ -7,8 +7,8 @@ from enum import Enum
 class UserRole(str, Enum):
     passenger = "passenger"
     driver = "driver"
-    many_driver = "many_driver"
-    many_passenger = "many_passenger"
+    mainly_driver = "mainly_driver"
+    mainly_passenger = "mainly_passenger"
 
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")
