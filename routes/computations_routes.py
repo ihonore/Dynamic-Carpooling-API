@@ -1,4 +1,5 @@
 import json
+import sys
 from fastapi import HTTPException
 from fastapi import APIRouter
 from datetime import datetime
@@ -14,5 +15,4 @@ router=APIRouter()
 
 @router.get("/")
 def process():
-    return list_serial(demands_collection.find())
-    computation()
+    return computation()

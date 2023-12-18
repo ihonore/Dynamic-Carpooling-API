@@ -18,7 +18,7 @@ class Offer(BaseModel):
         return {
             "id": str(self.id),
             "user_id": self.user_id,
-            "itinerary": self.itinerary.dict(),
+            "itinerary": self.itinerary.model_dump(),
             "plate_number": self.plate_number,
             "message": self.message,
             "created_at": self.created_at

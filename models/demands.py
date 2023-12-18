@@ -28,7 +28,7 @@ class Demand(BaseModel):
         return {
             "id": str(self.id),
             "user_id": self.user_id,
-            "itinerary": self.itinerary.dict(),
+            "itinerary": self.itinerary.model_dump(),
             "passengers_number":self.passengers_number,
             "message": self.message,
             "status": self.status,
