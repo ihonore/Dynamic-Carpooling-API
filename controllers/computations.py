@@ -146,6 +146,11 @@ def extract_requests() :
 
 # Convert Itinerary dict to List
 def convert_itinerary_dict_to_list(itin:dict) -> list:
+    """
+        index 0 : origin
+              |itin| - 1 : destination
+              1..|itin| - 2 : vias
+    """
     itinerary = []
     
     itinerary.append(itin['origin'])
@@ -172,31 +177,76 @@ def get_data_from_matrix(coord_1, coord_2) -> dict:
 def add_solution(req):
     solutions.append({'id': req['id'], 'available_seats': req['available_seats'], 'itinerary' : req['itinerary']})
     
-# Insert (or not) a request into the solutions
-def insert_into_solutions(req) -> bool:
-    if len(solutions) == 0 : return False
-    for sol in solutions:
-        # Check if the request is between the origin hour and destination hour of the current solution
+# Insert (or not) a position into an itinerary
+def insert_position_into_itinerary(position:dict, sol_itin:list, available_seats:int) -> tuple():
+    can_be_inserted = False
+    
+    for sol_itin_index in range(len(sol_itin)):
+        """
+            i = current location
+            j = next location
+            k = location to insert
+        """
         # Constraint of time window
-        if req['itinenary']['origin']['hour_at_last'] <  sol['itinerary']['origin']['hour_at_least'] or req['itinenary']['destination']['hour_at_least'] >  sol['itinerary']['destination']['hour_at_last'] :
-            # Skip the current itinerary solution
+        hour_1 = sol_itin[sol_itin_index]['hour_at_least'] + get_data_from_matrix(sol_itin[sol_itin_index]['coordinates'], position['coordinates'])
+        hour_2 = hour_1 + get_data_from_matrix(position['coordinates'], sol_itin[sol_itin_index+1]['coordinates'])
+        
+        # If the duration from i to k is not between window [hk-, hk+]
+        if not (hour_1 > position['hour_at_least'] and hour_1 < position['hour_at_last']):
             continue
         
-        possible = False
-        iterator = iter(sol['itinerary'])
+        # If the duration from i to k + k to j is not between window [hj-, hj+]
+        if not (hour_2 > sol_itin[sol_itin_index+1]['hour_at_least'] and hour_1 < sol_itin[sol_itin_index+1]['hour_at_last']):
+            continue
         
-        for key in iterator:
-            # Constraint of time window
-            hour_1 = sol['itinerary'][key]['hour_at_least'] + get_data_from_matrix(sol['itinerary'][key]['coordinates'], req['itinerary']['origin']['coordinates'])
-            hour_2 = req['itinerary']['origin']['hour_at_least'] + get_data_from_matrix( req['itinerary']['origin']['coordinates'], sol['itinerary'][next(key)]['coordinates'])
+        # Available seats constraint
+        difference_i = sol_itin[sol_itin_index]['number_of_pickups'] -  sol_itin[sol_itin_index]['number_of_drop_offs']
+        difference_k = position['number_of_pickups'] -  position['number_of_drop_offs']
+        difference_j = sol_itin[sol_itin_index + 1]['number_of_pickups'] -  sol_itin[sol_itin_index + 1]['number_of_drop_offs']
+        
+        if difference_i + difference_k > available_seats:
+            continue
+        
+        if difference_i + difference_k + difference_j > available_seats:
+            continue
+
+        
+        # All constrainst are verified so insert the position
+        can_be_inserted = True
+        sol_itin.insert(sol_itin_index+1)
+        break
+    
+    return can_be_inserted, sol_itin
+
+# Insert (or not) a request into the solutions
+def insert_itinerary_into_solutions(req) -> bool:
+    if len(solutions) == 0 : return False
+    
+    inserted = False
+        
+    for sol_index in range(len(solutions)):
+        req_itin = req['itinerary']
+        sol_itin = solutions[sol_index]['itinerary']
+        
+        # Check if the request is between the origin hour and destination hour of the current solution
+        # Constraint of time window
+        if req_itin[0]['hour_at_last'] <  sol_itin[0]['hour_at_least'] or req_itin[len(req_itin)-1]['hour_at_least'] >  sol_itin[len(sol_itin)-1]['hour_at_last'] :
+            # Skip the current itinerary solution
+            continue
             
-            if  hour_1 > req['itinerary']['origin']['hour_at_last'] or hour_2 > req['itinerary'][next(key)]['hour_at_last']:
-                continue
+        # Try to insert all positions (origin, vias, desitnation) into the current solution itinerary
+        for position in req_itin:
+            inserted, sol_itin =  insert_position_into_itinerary(position, sol_itin, solutions[sol_index]['available_seats'])
             
+            # If the current position is not inserted, break the loop of positions and go to the next solution
+            if not inserted:
+                break
             
-            
-            # Constraint of available seat
-            # if sol['available_seats'] <  
+        if inserted:
+            solutions[sol_index]['itinerary'] = sol_itin
+            break
+    
+    return inserted
     
 # Greedy matching algorithm
 def greedy_algo() -> list:
@@ -243,22 +293,22 @@ def greedy_algo() -> list:
             add_solution(req)
             list_req['od'].remove(req)
     
-        """# Step 2
+        # Step 2
         if (len(list_req['op'])):
             for req in list_req['op']:
-                if insert_into_solutions(req) :
+                if insert_itinerary_into_solutions(req) :
                     list_req['op'].remove(req)                  
             
         # Step 3
         if (len(list_req['mp'])):
             for req in list_req['mp']:
-                if insert_into_solutions(req) :
+                if insert_itinerary_into_solutions(req) :
                     list_req['mp'].remove(req)
             
         # Step 4
         if (len(list_req['md'])):
             for req in list_req['md']:
-                if insert_into_solutions(req) :
+                if insert_itinerary_into_solutions(req) :
                     list_req['md'].remove(req)
 
     if (len(list_req['md'])):
@@ -270,12 +320,12 @@ def greedy_algo() -> list:
         # Step 2
     if (len(list_req['op'])):
         for req in list_req['op']:
-            if insert_into_solutions(req) :
+            if insert_itinerary_into_solutions(req) :
                 list_req['op'].remove(req)
             
         # Step 3
     for req in list_req['mp']:
-        if insert_into_solutions(req) :
+        if insert_itinerary_into_solutions(req) :
             list_req['mp'].remove(req)
     
     # Step 6
@@ -286,8 +336,8 @@ def greedy_algo() -> list:
     
     if (len(list_req['op'])):
         for req in list_req['op']:
-            if insert_into_solutions(req) :
-                list_req['op'].remove(req)"""
+            if insert_itinerary_into_solutions(req) :
+                list_req['op'].remove(req)
     
     # Result 
     return solutions
