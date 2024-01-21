@@ -2,6 +2,7 @@ import os
 import requests
 import pandas as pd
 
+from datetime import datetime, timedelta
 from config.database import offers_collection, demands_collection, users_collection
 from schema.offers import list_serial as list_serial_offers
 from schema.demands import list_serial as list_serial_demands
@@ -12,7 +13,7 @@ from bson import ObjectId
 all_locations = []
 
 # Origin-destination matrix computed from all locations
-maxtrix = []
+#matrix = []
 
 # List of all requests from offers and demands
 list_req = {'od' : [], 'op' : [], 'md' : [], 'mp' : []}
@@ -22,6 +23,16 @@ solutions = []
 
 # Matrix output to xlsx file
 writer = pd.ExcelWriter('origin-destination_matrix.xlsx', engine = 'xlsxwriter')
+
+# Parse string to datatime
+def stringToDateTime(date_str: str)->datetime:
+    date_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+
+    # Convertir la chaîne en objet datetime
+    date_time_obj = datetime.strptime(date_str, date_format)
+
+    # Afficher l'objet datetime
+    return date_time_obj
 
 # Extract every locations (origin, destination and vias) of each itinerary either for offer or demand
 def extract_locations() -> list:
@@ -45,13 +56,12 @@ def add_ids_to_locations(locations) -> list:
 
     for location in locations:
         location_id = generate_unique_id(location['coordinates'])
-        result.append({'id': location_id, **location})
-        
+        result.append({'id': location_id, **location})  
     return result
 
 # Generate an unique id to each location
 def generate_unique_id(coord) -> str:
-    return f"{coord[0]}_{coord[1]}" # 0:Lat, 1:Long
+    return f"{coord[0]}_{coord[1]}" # 0:Long, 1:Lat
     
 # filter all locations by unique id in order to remove duplicate
 def filter_unique_locations(locations_with_ids):
@@ -72,7 +82,7 @@ def print_locations(locations):
     df1.to_excel(writer, sheet_name = 'Locations')
     
     for i, location in enumerate(locations, 1):
-        print(f"{i}. {location}")
+        print(f"{i}. {location} \n")
         # Write to xlsx file"""
 
 # Compute the distance and duration of two coordinates
@@ -103,10 +113,17 @@ def build_matrix(locations) -> list[list]:
                 
                 if route_info:
                     matrix[i][j] = {
+                        'itinerary': f"{locations[i]['location_name']} -> {locations[j]['location_name']}", # Convert in mn
                         'distance': round(route_info['distance'] / 1000, 2), # Convert in km
                         'duration': round(route_info['duration'] / 60, 2), # Convert in mn
                     }
-    
+            else: 
+                matrix[i][j] = {
+                    'itinerary': f"{locations[i]['location_name']} -> {locations[j]['location_name']}", # Convert in mn
+                    'distance': 0,
+                    'duration': 0, 
+                }
+                
     # Write in Excel file
     df2 = pd.DataFrame(matrix)
     df2.to_excel(writer, sheet_name = 'Origin-destination')
@@ -123,6 +140,7 @@ def extract_requests() :
     fields_to_remove = ['plate_number', 'message', 'created_at']
     
     for req in reqs:
+        #print(req)
         # Remove useless fields for algorithm
         for field in fields_to_remove:
             if field in req:
@@ -141,62 +159,76 @@ def extract_requests() :
             list_req['md'].append(req)
         elif user['role'] == 'mainly_passenger':
             list_req['mp'].append(req)
-    
+            
     return list_req
 
 # Convert Itinerary dict to List
 def convert_itinerary_dict_to_list(itin:dict) -> list:
     """
         index 0 : origin
-              |itin| - 1 : destination
-              1..|itin| - 2 : vias
+        |itin| - 1 : destination
+        1..|itin| - 2 : vias
     """
     itinerary = []
     
     itinerary.append(itin['origin'])
     if len(itin['vias']):
         for via in itin['vias']:
+            if(via == None): continue
             itinerary.append(via)
     itinerary.append(itin['destination'])
     
+    print("================> Itinerary")
+    print(itinerary)
+    
     return itinerary
 
-# get location index from all locations 
+# get location index from all locations
 def get_location_index(coord) -> int:
-    for index, loc in all_locations:
+    global all_locations
+        
+    for index, loc in enumerate(all_locations):
         if loc['id'] == generate_unique_id(coord):
             return index
         
 # Get data from origin-destination matrix
-def get_data_from_matrix(coord_1, coord_2) -> dict:
+def get_duration_from_matrix(matrix, coord_1, coord_2):
     index_1 = get_location_index(coord_1)
     index_2 = get_location_index(coord_2)
-    return maxtrix[index_1][index_2]
+        
+    return timedelta(minutes=matrix[index_1][index_2]['duration'])
 
 # Add a solution to the solutions list
 def add_solution(req):
     solutions.append({'id': req['id'], 'available_seats': req['available_seats'], 'itinerary' : req['itinerary']})
     
 # Insert (or not) a position into an itinerary
-def insert_position_into_itinerary(position:dict, sol_itin:list, available_seats:int) -> tuple():
+def insert_position_into_itinerary(matrix, position:dict, sol_itin:list, available_seats:int, inserted_index:int=0) -> tuple():
     can_be_inserted = False
     
-    for sol_itin_index in range(len(sol_itin)):
+    for sol_itin_index in range(inserted_index, len(sol_itin)-1):
         """
             i = current location
             j = next location
             k = location to insert
         """
         # Constraint of time window
-        hour_1 = sol_itin[sol_itin_index]['hour_at_least'] + get_data_from_matrix(sol_itin[sol_itin_index]['coordinates'], position['coordinates'])
-        hour_2 = hour_1 + get_data_from_matrix(position['coordinates'], sol_itin[sol_itin_index+1]['coordinates'])
+        """print("==========================================> ")
+        print(sol_itin_index)
+        print("==========================================> ")
+        print(position)"""
+        
+        hour_1 = stringToDateTime(sol_itin[sol_itin_index]['hour_at_least']) + get_duration_from_matrix(matrix, sol_itin[sol_itin_index]['coordinates'], position['coordinates'])
+        hour_2 = hour_1 + get_duration_from_matrix(matrix, position['coordinates'], sol_itin[sol_itin_index+1]['coordinates'])
         
         # If the duration from i to k is not between window [hk-, hk+]
-        if not (hour_1 > position['hour_at_least'] and hour_1 < position['hour_at_last']):
+        #print(hour_1 > stringToDateTime(position['hour_at_last']))
+        if hour_1 > stringToDateTime(position['hour_at_last']):
             continue
         
         # If the duration from i to k + k to j is not between window [hj-, hj+]
-        if not (hour_2 > sol_itin[sol_itin_index+1]['hour_at_least'] and hour_1 < sol_itin[sol_itin_index+1]['hour_at_last']):
+        #print(hour_2 > stringToDateTime(sol_itin[sol_itin_index+1]['hour_at_last']))
+        if hour_2 > stringToDateTime(sol_itin[sol_itin_index+1]['hour_at_last']):
             continue
         
         # Available seats constraint
@@ -209,17 +241,20 @@ def insert_position_into_itinerary(position:dict, sol_itin:list, available_seats
         
         if difference_i + difference_k + difference_j > available_seats:
             continue
+        
+        # Propagation of capacity throught all following positions
 
         
         # All constrainst are verified so insert the position
         can_be_inserted = True
-        sol_itin.insert(sol_itin_index+1)
+        sol_itin.insert(sol_itin_index+1, position)
+        inserted_index = sol_itin_index+1
         break
-    
-    return can_be_inserted, sol_itin
+   
+    return can_be_inserted, sol_itin, inserted_index
 
 # Insert (or not) a request into the solutions
-def insert_itinerary_into_solutions(req) -> bool:
+def insert_itinerary_into_solutions(matrix, req) -> bool:  
     if len(solutions) == 0 : return False
     
     inserted = False
@@ -229,14 +264,17 @@ def insert_itinerary_into_solutions(req) -> bool:
         sol_itin = solutions[sol_index]['itinerary']
         
         # Check if the request is between the origin hour and destination hour of the current solution
-        # Constraint of time window
-        if req_itin[0]['hour_at_last'] <  sol_itin[0]['hour_at_least'] or req_itin[len(req_itin)-1]['hour_at_least'] >  sol_itin[len(sol_itin)-1]['hour_at_last'] :
+        # Constraint of time window        
+        if stringToDateTime(req_itin[0]['hour_at_last']) <  stringToDateTime(sol_itin[0]['hour_at_least']) or stringToDateTime(req_itin[len(req_itin)-1]['hour_at_least']) >  stringToDateTime(sol_itin[len(sol_itin)-1]['hour_at_last']) :
             # Skip the current itinerary solution
             continue
             
         # Try to insert all positions (origin, vias, desitnation) into the current solution itinerary
-        for position in req_itin:
-            inserted, sol_itin =  insert_position_into_itinerary(position, sol_itin, solutions[sol_index]['available_seats'])
+        inserted_index = 0
+        
+        for position in req_itin:            
+            # inserted_index to know the index the index of the previous position inserted (0 by default)
+            inserted, sol_itin, inserted_index =  insert_position_into_itinerary(matrix, position, sol_itin, solutions[sol_index]['available_seats'], inserted_index)
             
             # If the current position is not inserted, break the loop of positions and go to the next solution
             if not inserted:
@@ -249,7 +287,7 @@ def insert_itinerary_into_solutions(req) -> bool:
     return inserted
     
 # Greedy matching algorithm
-def greedy_algo() -> list:
+def greedy_algo(matrix) -> list:
     #Extract all Requests
     extract_requests()
     
@@ -296,19 +334,19 @@ def greedy_algo() -> list:
         # Step 2
         if (len(list_req['op'])):
             for req in list_req['op']:
-                if insert_itinerary_into_solutions(req) :
+                if insert_itinerary_into_solutions(matrix, req) :
                     list_req['op'].remove(req)                  
             
         # Step 3
         if (len(list_req['mp'])):
             for req in list_req['mp']:
-                if insert_itinerary_into_solutions(req) :
+                if insert_itinerary_into_solutions(matrix, req) :
                     list_req['mp'].remove(req)
             
         # Step 4
         if (len(list_req['md'])):
             for req in list_req['md']:
-                if insert_itinerary_into_solutions(req) :
+                if insert_itinerary_into_solutions(matrix, req) :
                     list_req['md'].remove(req)
 
     if (len(list_req['md'])):
@@ -320,12 +358,12 @@ def greedy_algo() -> list:
         # Step 2
     if (len(list_req['op'])):
         for req in list_req['op']:
-            if insert_itinerary_into_solutions(req) :
+            if insert_itinerary_into_solutions(matrix, req) :
                 list_req['op'].remove(req)
             
         # Step 3
     for req in list_req['mp']:
-        if insert_itinerary_into_solutions(req) :
+        if insert_itinerary_into_solutions(matrix, req) :
             list_req['mp'].remove(req)
     
     # Step 6
@@ -336,11 +374,11 @@ def greedy_algo() -> list:
     
     if (len(list_req['op'])):
         for req in list_req['op']:
-            if insert_itinerary_into_solutions(req) :
+            if insert_itinerary_into_solutions(matrix, req) :
                 list_req['op'].remove(req)
     
     # Result 
-    return solutions
+    #return solutions
 
 # Computation of the whole process
 def computation():
@@ -348,15 +386,29 @@ def computation():
     """if os.path.exists('origin-destination_matrix.xlsx'):
         os.remove('origin-destination_matrix.xlsx')"""
         
+    global all_locations
+        
     # Extract and preprocess locations
     all_locations = extract_locations()
     all_locations = add_ids_to_locations(all_locations)
     all_locations = filter_unique_locations(all_locations)
     
-    # print_locations(all_locations)
+    print_locations(all_locations)
 
     # Compute the orign-destination matrix
-    matrix = build_matrix(all_locations)
-        
-    # Execute greedy matching algorithm    
-    return greedy_algo()
+    # matrix = build_matrix(all_locations)
+    
+    # For testing
+    matrix = [
+        [{'duration': 0},  {'duration': 4}, {'duration':   4}, {'duration':  16}, {'duration': 4.5}, {'duration':  16}],
+        [{'duration': 4},  {'duration': 0}, {'duration':  15}, {'duration':   2}, {'duration':  14}, {'duration':   2}],
+        [{'duration': 4},  {'duration': 15}, {'duration':   0}, {'duration':  12}, {'duration': 0.5}, {'duration':  12}],
+        [{'duration': 16}, {'duration': 2}, {'duration':  12}, {'duration':   0}, {'duration':  12}, {'duration': 0.5}],
+        [{'duration': 4.5},{'duration': 14}, {'duration': 0.5}, {'duration':  12}, {'duration':   0}, {'duration': 0.5}],
+        [{'duration': 16}, {'duration': 2}, {'duration':  12}, {'duration': 0.5}, {'duration': 0.5}, {'duration':   0}],
+    ]
+                
+    # Execute greedy matching algorithm
+    greedy_algo(matrix)
+    
+    return solutions

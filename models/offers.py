@@ -20,6 +20,7 @@ class Offer(BaseModel):
             "user_id": self.user_id,
             "itinerary": self.itinerary.model_dump(),
             "plate_number": self.plate_number,
+            "available_seats": self.available_seats,
             "message": self.message,
             "created_at": self.created_at
         }

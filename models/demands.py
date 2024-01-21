@@ -19,18 +19,25 @@ class Demand(BaseModel):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")
     user_id: str
     itinerary: Itinerary
-    passengers_number:int
+    #passengers_number:int
     message: str
     status: DemandStatus
     created_at: datetime
+    
+    #Added
+    plate_number:str
+    available_seats:int
 
     def model_dump(self):
         return {
             "id": str(self.id),
             "user_id": self.user_id,
             "itinerary": self.itinerary.model_dump(),
-            "passengers_number":self.passengers_number,
+            #"passengers_number":self.passengers_number,
             "message": self.message,
             "status": self.status,
-            "created_at": self.created_at
+            "created_at": self.created_at,
+            
+            "plate_number": self.plate_number,
+            "available_seats": self.available_seats,
         }
