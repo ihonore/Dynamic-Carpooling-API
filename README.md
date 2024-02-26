@@ -40,6 +40,10 @@ Before you begin, make sure you have the following installed:
 - On Windows:
     ```bash
     .\env\Scripts\activate
+
+    or
+    
+    source env/Scripts/activate
 - On MacOs:
     ```bash
     source env/bin/activate
