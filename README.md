@@ -44,6 +44,7 @@ Before you begin, make sure you have the following installed:
     or
     
     source env/Scripts/activate
+    
 - On MacOs:
     ```bash
     source env/bin/activate
