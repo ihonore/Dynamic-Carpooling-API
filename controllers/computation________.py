@@ -24,7 +24,7 @@ class Computation:
     solutions = []
 
     # Matrix output to xlsx file
-    writer = pd.ExcelWriter('origin-destination_matrix.xlsx', engine = 'xlsxwriter')
+    # writer = pd.ExcelWriter('origin-destination_matrix.xlsx', engine = 'xlsxwriter')
 
     # Parse string to datatime
     def stringToDateTime(self, date_str: str)->datetime:
@@ -81,8 +81,8 @@ class Computation:
 
     # Write the locations in xslx file    
     def print_locations(self, locations):
-        df1 = pd.DataFrame(locations)
-        df1.to_excel(writer, sheet_name = 'Locations')
+        # df1 = pd.DataFrame(locations)
+        # df1.to_excel(writer, sheet_name = 'Locations')
         
         for i, location in enumerate(locations, 1):
             print(f"{i}. {location}")
@@ -123,8 +123,8 @@ class Computation:
         
         # Write in Excel file
         df2 = pd.DataFrame(self.matrix)
-        df2.to_excel(self.writer, sheet_name = 'Origin-destination')
-        self.writer.close()
+        # df2.to_excel(self.writer, sheet_name = 'Origin-destination')
+        # self.writer.close()
         
         self.matrix
 

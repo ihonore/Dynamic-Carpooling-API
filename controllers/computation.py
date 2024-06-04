@@ -22,7 +22,7 @@ list_req = {'od' : [], 'op' : [], 'md' : [], 'mp' : []}
 solutions = []
 
 # Matrix output to xlsx file
-writer = pd.ExcelWriter('origin-destination_matrix.xlsx', engine = 'xlsxwriter')
+# writer = pd.ExcelWriter('origin-destination_matrix.xlsx', engine = 'xlsxwriter')
 
 # Parse string to datatime
 def stringToDateTime(date_str: str)->datetime:
@@ -79,7 +79,7 @@ def filter_unique_locations(locations_with_ids):
 # Write the locations in xslx file    
 def print_locations(locations):
     df1 = pd.DataFrame(locations)
-    df1.to_excel(writer, sheet_name = 'Locations')
+    # df1.to_excel(writer, sheet_name = 'Locations')
     
     for i, location in enumerate(locations, 1):
         print(f"{i}. {location} \n")
@@ -126,8 +126,8 @@ def build_matrix(locations) -> list[list]:
                 
     # Write in Excel file
     df2 = pd.DataFrame(matrix)
-    df2.to_excel(writer, sheet_name = 'Origin-destination')
-    writer.close()
+    # df2.to_excel(writer, sheet_name = 'Origin-destination')
+    # writer.close()
     
     return matrix
 
