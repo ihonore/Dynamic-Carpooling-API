@@ -7,9 +7,10 @@ The Dynamic Carpooling API is a FastAPI-based project that provides dynamic carp
 
 ## Features
 
-- User registration and authentication (Authentication not yet implemented)
+- User registration and authentication
 - Demand and offer services
-- Matrix off origin and destinations (To be implemented)
+- Matrix off origin and destinations
+- Iteneraries Computation
 - ...
 
 ## Getting Started
